@@ -1,5 +1,7 @@
 package machines
 
+import dnl.utils.text.table.TextTable
+
 class FiniteStateMachine(
     val states: List<String>,
     val alphabet: List<Char>,
@@ -22,7 +24,7 @@ class FiniteStateMachine(
 
     var currentState: String = startState
         private set
-    var currentStateType: StateType = getCurrentStateType()
+    var currentStateType: StateType = recognizeCurrentStateType()
 
     var isStarted: Boolean = false
         private set
@@ -45,7 +47,7 @@ class FiniteStateMachine(
             isFinished = true
         }
 
-        currentStateType = getCurrentStateType()
+        currentStateType = recognizeCurrentStateType()
     }
 
     fun makeSteps(symbols: Iterable<Char>) {
@@ -55,26 +57,43 @@ class FiniteStateMachine(
 
     fun reset() {
         currentState = startState
-        currentStateType = getCurrentStateType()
+        currentStateType = recognizeCurrentStateType()
         isStarted = false
         isFinished = false
     }
 
     fun printToConsole(moveFirstSymbolToEnd: Boolean = false) {
-        val states = map.keys.map { it.state }.distinct()
-        val symbols = map.keys.map { it.symbol }.distinct().toMutableList()
+        val sortedMap = this.getMap().toSortedMap(compareBy<Rule> { it.state }.thenBy { it.symbol })
+        val states = sortedMap.keys.map { it.state }.distinct()
+        var symbols = sortedMap.keys.map { it.symbol }.distinct().toMutableList()
 
         if (moveFirstSymbolToEnd) {
             symbols.addLast(symbols.first())
-            symbols.drop(1)
+            symbols = symbols.drop(1).toMutableList()
         }
 
-        val symbolsStr = symbols.map { it.toString() }
-        val firstRow = mutableListOf("").addAll(symbolsStr)
-        // TODO доделать вывод
+        val symbolsStr = symbols.map { "$it " }.toMutableList()
+        symbolsStr.addFirst(" ")
+        val table = mutableListOf<List<String>>()
+
+        states.forEach { state ->
+            val row = mutableListOf(state)
+
+            symbols.forEach { symbol ->
+                val rule = Rule(state, symbol)
+                val value = map[rule].orEmpty()
+
+                row.add(value)
+            }
+
+            table.add(row)
+        }
+
+        val tt = TextTable(symbolsStr.toTypedArray(), table.map { it.toTypedArray() }.toTypedArray())
+        tt.printTable()
     }
 
-    private fun getCurrentStateType(): StateType {
+    private fun recognizeCurrentStateType(): StateType {
         return if (endStates.contains(currentState))
             StateType.End
         else if (startState == currentState)

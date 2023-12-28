@@ -8,7 +8,7 @@ class FSMMinimizer {
 
             val states = classes.map { it.joinToString(" ") }
             val endStates = classes.filter { t -> t.any { fsm.endStates.contains(it) } }
-                .map { it.joinToString { "" } }
+                .map { it.joinToString(" ") }
 
             val startStateClass = classes.first { it.contains(fsm.startState) }
             val startState = startStateClass.joinToString(" ")
@@ -35,16 +35,17 @@ class FSMMinimizer {
         private fun extractKEquivalenceClasses(
             states: List<String>, k: Int, fsm: FiniteStateMachine
         ): List<List<String>> {
-            val classes = divideIntoKEquivalenceClasses(states, k + 1, fsm)
+            val classes = divideIntoKEquivalenceClasses(states, k, fsm)
+            val newK = k + 1
 
             if (classes.size == 1) {
                 return classes
             }
 
-            val subclasses = mutableListOf(mutableListOf<String>())
+            val subclasses = mutableListOf<MutableList<String>>()
 
             classes.forEach { c ->
-                val currClasses = extractKEquivalenceClasses(c.toList(), k, fsm)
+                val currClasses = extractKEquivalenceClasses(c.toList(), newK, fsm)
                 subclasses.addAll(currClasses.map { it.toMutableList() })
             }
 
@@ -56,7 +57,7 @@ class FSMMinimizer {
             k: Int,
             fsm: FiniteStateMachine
         ): List<List<String>> {
-            val equivalenceClasses = mutableListOf(mutableListOf<String>())
+            val equivalenceClasses = mutableListOf<MutableList<String>>()
 
             for (i in states.indices) {
                 if (equivalenceClasses.any { it.contains(states[i]) }) {
@@ -75,7 +76,7 @@ class FSMMinimizer {
             return equivalenceClasses
         }
 
-        private fun isStates0Equal(firstState: String, secondState: String, fsm: FiniteStateMachine): Boolean {
+        private fun isStates0Equal(firstState: String?, secondState: String?, fsm: FiniteStateMachine): Boolean {
             if (fsm.endStates.contains(firstState) && fsm.endStates.contains(secondState)) {
                 return true
             }
@@ -85,17 +86,16 @@ class FSMMinimizer {
             return notEndStates.contains(firstState) && notEndStates.contains(secondState)
         }
 
-        private fun isStatesKEqual(firstState: String, secondState: String, k: Int, fsm: FiniteStateMachine): Boolean {
+        private fun isStatesKEqual(firstState: String?, secondState: String?, k: Int, fsm: FiniteStateMachine): Boolean {
             if (k == 0) {
                 return isStates0Equal(firstState, secondState, fsm)
             }
 
             fsm.alphabet.forEach { c ->
-                val firstValue = fsm.getMap()[Rule(firstState, c)]
-                val secondValue = fsm.getMap()[Rule(secondState, c)]
+                val firstValue = fsm.getMap()[Rule(firstState!!, c)]
+                val secondValue = fsm.getMap()[Rule(secondState!!, c)]
 
-                // TODO Че бля
-                if (firstValue != secondValue && !isStatesKEqual(firstValue!!, secondValue!!, k - 1, fsm)) {
+                if (firstValue != secondValue && !isStatesKEqual(firstValue, secondValue, k - 1, fsm)) {
                     return false
                 }
             }
