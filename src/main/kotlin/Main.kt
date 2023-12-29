@@ -7,6 +7,7 @@ fun main(args: Array<String>) {
     test1()
     test2()
     test3()
+    test4()
 
     println("Конец тестовых сценариев")
 }
@@ -29,9 +30,9 @@ fun testEquality(source: FiniteStateMachine, min: FiniteStateMachine, tapePostfi
         val xAnswer = source.currentStateType == StateType.End
         val yAnswer = min.currentStateType == StateType.End
 
-        println("Оканчивается ли данная строка в конечном состоянии")
-        println("Исходный автомат: $xAnswer")
-        println("Минимальный автомат: $yAnswer")
+        println("Оканчивается ли данная строка в конечном состоянии:")
+        println("  Исходный автомат:    $xAnswer")
+        println("  Минимальный автомат: $yAnswer")
         println()
 
         source.reset()
