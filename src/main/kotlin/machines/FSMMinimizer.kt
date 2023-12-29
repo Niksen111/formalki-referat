@@ -32,6 +32,89 @@ class FSMMinimizer {
             return FiniteStateMachine(states, fsm.alphabet, map, startState, endStates)
         }
 
+        fun minimizeSecondStep(baseFsm: FiniteStateMachine): FiniteStateMachine {
+            val fsm = minimize(baseFsm)
+
+            val classes = fsm.states.map { listOf(it) }.toMutableList()
+            val representatives = fsm.states.toMutableList()
+
+            for (i in fsm.startState.indices) {
+                for (j in i+1..<fsm.states.size) {
+                    val firstState = fsm.states[i]
+                    val secondState = fsm.states[j]
+
+                    var isEquivalent = true
+
+                    for (c in fsm.alphabet) {
+                        val firstValue = fsm.getMap()[Rule(firstState, c)]
+                        val secondValue = fsm.getMap()[Rule(secondState, c)]
+
+                        val isEqual = firstValue == secondValue
+                                || firstValue == null
+                                || secondValue == null
+
+                        if (!isEqual) {
+                            isEquivalent = false
+                            break
+                        }
+                    }
+
+                    if (!isEquivalent) {
+                        continue
+                    }
+
+                    val firstStateClass = classes.find { it.contains(firstState) }.orEmpty().toMutableList()
+                    val secondStateClass = classes.find { it.contains(secondState) }.orEmpty().toMutableList()
+
+                    if (firstStateClass == secondStateClass) {
+                        continue
+                    }
+
+                    val secondStateClassIndex = classes.indexOf(secondStateClass)
+
+                    firstStateClass.add(secondState)
+                    secondStateClass.remove(secondState)
+
+                    if (secondStateClass.isNotEmpty()) {
+                        val representative = secondStateClass[0]
+                        representatives[secondStateClassIndex] = representative
+                    } else {
+                        representatives[secondStateClassIndex] = ""
+                    }
+                }
+            }
+
+            classes.removeAll { it.isEmpty() }
+            representatives.removeAll { it.isEmpty() }
+
+            val states = classes.map { it.joinToString(" ") }
+            val endStates = classes.filter { it.any { x -> fsm.endStates.contains(x) } }
+                .map { it.joinToString(" ") }
+
+            val startStateClass = classes.first { it.contains(fsm.startState) }
+            val startState = startStateClass.joinToString(" ")
+
+            val map = hashMapOf<Rule, String>()
+
+            for (i in classes.indices) {
+                val currClass = classes[i]
+
+                val classRepresentative = representatives[i]
+                val state = currClass.joinToString(" ")
+
+                fsm.alphabet.forEach { c ->
+                    val rule = Rule(classRepresentative, c)
+
+                    fsm.getMap()[rule]?.let { value ->
+                        val valueClass = findStateClass(value, classes).joinToString(" ")
+                        map[Rule(state, c)] = valueClass
+                    }
+                }
+            }
+
+            return FiniteStateMachine(states, fsm.alphabet, map, startState, endStates)
+        }
+
         private fun extractKEquivalenceClasses(
             states: List<String>, k: Int, fsm: FiniteStateMachine
         ): List<List<String>> {
